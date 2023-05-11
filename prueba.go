@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strconv"
 	"strings"
 
 	"golang.org/x/crypto/chacha20"
@@ -153,7 +154,7 @@ func singinData() ([]byte, []byte) {
 	return login, hashemail
 }
 
-func singin([]byte, []byte) {
+func singin(loginHash []byte, hashemail []byte) {
 	fmt.Println("to do")
 }
 
@@ -183,7 +184,6 @@ func singupData() ([]byte, []byte) {
 func generadorContrasena() string {
 
 	return "to do"
-
 }
 
 func anadirContrasena() {
@@ -254,6 +254,84 @@ func anadirContrasena() {
 	contrasenas = append(contrasenas, user)
 }
 
+func mostrarContrasenas() {
+	indice := 0
+	maximo := 0
+	var opcion string
+	for {
+		maximo += 5
+		if maximo > (len(contrasenas) - 1) {
+			maximo = len(contrasenas) - 1
+		}
+		for {
+			fmt.Println("contaseña " + strconv.Itoa(indice) + ": " + userToString(contrasenas[indice]))
+			if maximo == indice {
+				break
+			}
+			indice++
+		}
+		if indice < (len(contrasenas) - 1) {
+			fmt.Println("si desea ver las siguiente 5 introduzca 1 si desea ver los 5 anteriores introduzca 2 si no desea ver mas contraseñas introduzca 3")
+			fmt.Scan(&opcion)
+			if opcion == "2" {
+				indice -= 5
+			} else if opcion == "3" {
+				break
+			}
+		} else {
+			break
+		}
+	}
+}
+
+func modificarContrasena(posicion int) {
+
+	var opcion string
+	var nuevo string
+	user := contrasenas[posicion]
+	fmt.Println("si desaea modificar el nombre de usuario pulse 1\n si desea modificar el email pulse 2\n si desea modificar la contraseña pulse 3\n si desea modificar el sitio web pulse 4\n si desea modificar o añadir notas pulse 5")
+	fmt.Scan(&opcion)
+	switch opcion {
+	case "1":
+		fmt.Println("Introduzca el nuevo nombre: ")
+		fmt.Scan(&nuevo)
+		user.Username = nuevo
+		contrasenas[posicion] = user
+	case "2":
+		fmt.Println("Introduzca el nuevo email: ")
+		fmt.Scan(&nuevo)
+		user.Email = nuevo
+		contrasenas[posicion] = user
+	case "3":
+		fmt.Println("Introduzca la nueva contraseña: ")
+		fmt.Scan(&nuevo)
+		user.Password = nuevo
+		contrasenas[posicion] = user
+	case "4":
+		fmt.Println("Introduzca el nuevo sitio web: ")
+		fmt.Scan(&nuevo)
+		user.WebSite = nuevo
+		contrasenas[posicion] = user
+	case "5":
+		fmt.Println("desea añadir otra nota o modificar la actual (Añadir 1, Modificar 2): ")
+		fmt.Scan(&opcion)
+		fmt.Println("Introduzca la nueva nota: ")
+		fmt.Scan(&nuevo)
+		if opcion == "1" {
+			user.Notes = nuevo
+		} else if opcion == "2" {
+			user.Notes += ", " + nuevo
+		}
+		contrasenas[posicion] = user
+	default:
+		fmt.Println("el valor no es correcto")
+	}
+}
+
+func borrarContrasena(posicion int) {
+	contrasenas = append(contrasenas[:posicion], contrasenas[posicion+1:]...)
+}
+
 func pruebas() {
 	user := User{
 		Username: "vicente",
@@ -262,6 +340,54 @@ func pruebas() {
 		WebSite:  "facebook",
 		Notes:    "estas notas son de ejemplo",
 	}
+
+	user2 := User{
+		Username: "vicente2",
+		Email:    "vicentemail2",
+		Password: "1",
+		WebSite:  "facebook2",
+		Notes:    "estas notas son de ejemplo2",
+	}
+
+	user3 := User{
+		Username: "vicente3",
+		Email:    "vicentemail3",
+		Password: "2",
+		WebSite:  "facebook3",
+		Notes:    "estas notas son de ejemplo3",
+	}
+	contrasenas = append(contrasenas, user)
+	contrasenas = append(contrasenas, user2)
+	contrasenas = append(contrasenas, user3)
+	fmt.Println()
+	fmt.Println("mostrando usuarios")
+	mostrarContrasenas()
+
+	fmt.Println()
+	fmt.Println("añadirendo un usuario")
+	anadirContrasena()
+
+	fmt.Println()
+	fmt.Println("mostrando usuarios")
+	mostrarContrasenas()
+
+	fmt.Println()
+	fmt.Println("modificando un usuario")
+	modificarContrasena(3)
+
+	fmt.Println()
+	fmt.Println("mostrando usuarios")
+	mostrarContrasenas()
+
+	fmt.Println()
+	fmt.Println("borrando un usuario")
+	borrarContrasena(2)
+
+	fmt.Println()
+	fmt.Println("mostrando usuarios")
+	mostrarContrasenas()
+
+	fmt.Println()
 	string1 := userToString(user)
 	fmt.Println(string1)
 
@@ -279,8 +405,8 @@ func pruebas() {
 
 	fmt.Println("Texto descifrado:", textodescifrado)
 
-	user2 := stringToUser(textodescifrado)
-	fmt.Println(user2)
+	userX := stringToUser(textodescifrado)
+	fmt.Println(userX)
 }
 
 func main() {
