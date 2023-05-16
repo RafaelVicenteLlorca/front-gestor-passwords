@@ -6,8 +6,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/big"
 	"strconv"
 	"strings"
+	"unicode"
 
 	"golang.org/x/crypto/chacha20"
 	"golang.org/x/crypto/sha3"
@@ -15,6 +17,11 @@ import (
 
 var key []byte
 var contrasenas []User
+
+type data struct {
+	Id uint
+	content string
+}
 
 type User struct {
 	Username string
@@ -166,14 +173,18 @@ func singupData() ([]byte, []byte) {
 	fmt.Println("Introduzca su email: ")
 	fmt.Scan(&email)
 	for {
-		fmt.Println("Introduzca su contraseña: ")
+		fmt.Println("Introduzca su contraseña, la contraseña debe contener al menos 1 mayuscula y 1 valor numerico: ")
 		fmt.Scan(&contraseña)
-		fmt.Println("Verificando contraseña, introduzca su contraseña de nuevo: ")
-		fmt.Scan(&contraseña2)
-		if contraseña == contraseña2 {
-			break
+		if comprobarContrasena(contraseña) {
+			fmt.Println("Verificando contraseña, introduzca su contraseña de nuevo: ")
+			fmt.Scan(&contraseña2)
+			if contraseña == contraseña2 {
+				break
+			} else {
+				fmt.Println("Las contraseñas no coinciden, intentelo de nuevo")
+			}
 		} else {
-			fmt.Println("Las contraseñas no coinciden, intentelo de nuevo")
+			fmt.Println("Error, la contraseña debe contener al menos 1 mayuscula y 1 valor numerico")
 		}
 	}
 
@@ -181,9 +192,14 @@ func singupData() ([]byte, []byte) {
 	return login, hashemail
 }
 
-func generadorContrasena() string {
-
-	return "to do"
+func generadorContrasena(tam int) string {
+	const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890?!@#$%^&*()_+[]{}"
+	result := make([]byte, tam)
+	for i := range result {
+		randomIndex, _ := rand.Int(rand.Reader, big.NewInt(int64(len(chars))))
+		result[i] = chars[randomIndex.Int64()]
+	}
+	return string(result)
 }
 
 func anadirContrasena() {
@@ -207,22 +223,34 @@ func anadirContrasena() {
 		fmt.Println("Seleccione 1 para una clave aleatoria\n Seleccione 2 para insertar la clave")
 		fmt.Scan(&opcion)
 		if opcion == "1" {
-			password = generadorContrasena()
+			tam := 13
+			var tamaux string
+			var tamaux2 int
+			fmt.Println("Seleccione 1 para una clave aleatoria\n Seleccione 2 para insertar la clave")
+			fmt.Scan(&tamaux)
+			tamaux =
+			if   ||tamaux <0 
+			password = generadorContrasena(tam)
 			break
 		} else if opcion == "2" {
 			var contrasena string
 			var contrasena2 string
 			for {
-				fmt.Println("Introduzca su contraseña: ")
+				fmt.Println("Introduzca su contraseña, la contraseña debe contener al menos 1 mayuscula y 1 valor numerico: ")
 				fmt.Scan(&contrasena)
-				fmt.Println("Verificando contraseña, introduzca su contraseña de nuevo: ")
+				fmt.Println("Verificando contraseña, introduzca la contraseña de nuevo: ")
 				fmt.Scan(&contrasena2)
-				if contrasena == contrasena2 {
-					password = contrasena
-					break
+				if comprobarContrasena(contrasena) {
+					if contrasena == contrasena2 {
+						password = contrasena
+						break
+					} else {
+						fmt.Println("Las contaseñas no coinciden")
+					}
 				} else {
-					fmt.Println("Las contaseñas no coinciden")
+					fmt.Println("Error, la contraseña debe contener al menos 1 mayuscula y 1 valor numerico")
 				}
+
 			}
 			break
 		} else {
@@ -330,6 +358,26 @@ func modificarContrasena(posicion int) {
 
 func borrarContrasena(posicion int) {
 	contrasenas = append(contrasenas[:posicion], contrasenas[posicion+1:]...)
+}
+
+func comprobarContrasena(contrasena string) bool {
+
+	if len(contrasena) < 10 {
+		return false
+	}
+	tieneMayuscula := false
+	tieneNumero := false
+	for _, c := range contrasena {
+		if unicode.IsUpper(c) {
+			tieneMayuscula = true
+		}
+		if unicode.IsNumber(c) {
+			tieneNumero = true
+		}
+	}
+	valido := tieneMayuscula && tieneNumero
+
+	return valido
 }
 
 func pruebas() {
