@@ -1,34 +1,31 @@
 package main
 
 import (
-	"crypto/rand"
-	"encoding/base64"
-	"errors"
 	"fmt"
-	"io"
+	"os"
+	"prueba/client"
+	"prueba/pkg/user"
+	"prueba/pkg/utils"
+	"prueba/services"
+	"prueba/session"
+	loginui "prueba/ui/login"
+	mainui "prueba/ui/main"
 	"strconv"
 	"strings"
 
-	"golang.org/x/crypto/chacha20"
-	"golang.org/x/crypto/sha3"
+	"golang.org/x/term"
 )
 
-var key []byte
-var contrasenas []User
+var contrasenas []user.User
+var sessionObject *session.Session
 
-type User struct {
-	Username string
-	Email    string
-	Password string
-	WebSite  string
-	Notes    string
-}
+var (
+	userService *services.UserService
+)
 
-func userToString(usuario User) string {
-	return "Usuario: " + usuario.Username + " email: " + usuario.Email + " contraseña: " + usuario.Password + " sitioweb: " + usuario.WebSite + " notas: " + usuario.Notes
-}
+const MAX_TRIES_LOGIN = 3
 
-func stringToUser(usuarioString string) User {
+func stringToUser(usuarioString string) user.User {
 	// Dividir la cadena en tres partes usando el separador " "
 
 	partes := strings.Split(usuarioString, " ")
@@ -54,7 +51,7 @@ func stringToUser(usuarioString string) User {
 		notes = strings.Join(partes[notesIndex+1:], " ")
 	}
 	// Crear una nueva instancia de la estructura User con los valores extraídos
-	user := User{
+	user := user.User{
 		Username: strings.TrimSpace(username),
 		Email:    strings.TrimSpace(email),
 		Password: strings.TrimSpace(password),
@@ -65,124 +62,59 @@ func stringToUser(usuarioString string) User {
 	return user
 }
 
-func generadorHash(email string, pass string) ([]byte, []byte) {
-	// Concatenamos el usuario y la contraseña separados por un caracter nulo
-	data := []byte(email + "\x00" + pass)
-
-	// Generamos el hash SHA-3 de 512 bits de la concatenación anterior
-	hash := sha3.Sum512(data)
-	hashemaillargo := sha3.Sum256([]byte(email))
-	// Convertimos el hash a una cadena de texto en formato hexadecimal
-	// hashStr := hex.EncodeToString(hash[:])
-
-	// Dividimos el hash en dos partes iguales
-	key = hash[:len(hash)/2]
-	hash2 := hash[len(hash)/2:]
-	emailhashed := hashemaillargo[:]
-	return hash2, emailhashed
-}
-
-func encryptChaCha(texto string) (string, error) {
-	// Generar un nonce aleatorio de 24 bytes
-	nonce := make([]byte, chacha20.NonceSize)
-	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
-		return "", err
-	}
-
-	// Crear un cifrador con la clave y el nonce
-	cifrador, err := chacha20.NewUnauthenticatedCipher(key, nonce)
+func singin(loginHash string, hashemail string) bool {
+	lr := services.LoginRequest{Email: loginHash, Password: hashemail}
+	lresp, err := userService.Login(lr)
 	if err != nil {
-		return "", err
+		fmt.Println(err.Error())
+		return false
 	}
-
-	// Cifrar los datos
-	cifrado := make([]byte, len(texto))
-	cifrador.XORKeyStream(cifrado, []byte(texto))
-
-	// Codificar el nonce y el cifrado como una cadena base64
-	resultado := base64.StdEncoding.EncodeToString(append(nonce, cifrado...))
-
-	return resultado, nil
+	userService.HttpClient.SetToken(lresp.Token)
+	return true
 }
 
-func decryptChaCha(ciphertext string) (string, error) {
-	// Decodificar la cadena base64
-	data, err := base64.StdEncoding.DecodeString(ciphertext)
-	if err != nil {
-		return "", err
-	}
-
-	// Verificar que la longitud de la cadena decodificada sea mayor o igual que la longitud del nonce
-	if len(data) < chacha20.NonceSize {
-		return "", errors.New("la cadena cifrada es demasiado corta")
-	}
-
-	// Extraer el nonce y el cifrado
-	nonce := data[:chacha20.NonceSize]
-	cifrado := data[chacha20.NonceSize:]
-
-	// Crear un descifrador con la clave y el nonce
-	descifrador, err := chacha20.NewUnauthenticatedCipher(key, nonce)
-	if err != nil {
-		return "", err
-	}
-
-	// Descifrar los datos
-	plaintext := make([]byte, len(cifrado))
-	descifrador.XORKeyStream(plaintext, cifrado)
-
-	return string(plaintext), nil
-}
-
-func mainMenu() {
-	fmt.Println("---------------------------------------------------------------------------------------------------------------------------------------------------------------")
-	fmt.Println("---------------------------------------------------------------BIENVENIDO AL GESTOR DE CONTRASEÑAS-------------------------------------------------------------")
-	fmt.Println("---------------------------------------------------------------------------------------------------------------------------------------------------------------")
-	fmt.Print("\n\n")
-	fmt.Println("								Pulse 1 para logearse										")
-	fmt.Println("								Pulse 2 para Crear un usuario								")
-}
-
-func singinData() ([]byte, []byte) {
-	var email string
-	var contraseña string
-	fmt.Println("Introduzca su email: ")
-	fmt.Scan(&email)
-	fmt.Println("Introduzca su contraseña: ")
-	fmt.Scan(&contraseña)
-	login, hashemail := generadorHash(email, contraseña)
-	return login, hashemail
-}
-
-func singin(loginHash []byte, hashemail []byte) {
-	fmt.Println("to do")
-}
-
-func singupData() ([]byte, []byte) {
-	var email string
-	var contraseña string
-	var contraseña2 string
-
-	fmt.Println("Introduzca su email: ")
-	fmt.Scan(&email)
+func formPasswordContinue() string {
 	for {
-		fmt.Println("Introduzca su contraseña: ")
-		fmt.Scan(&contraseña)
-		fmt.Println("Verificando contraseña, introduzca su contraseña de nuevo: ")
-		fmt.Scan(&contraseña2)
-		if contraseña == contraseña2 {
-			break
-		} else {
+		password := formPassword()
+		if password == "" {
 			fmt.Println("Las contraseñas no coinciden, intentelo de nuevo")
+			continue
 		}
+		return password
 	}
+}
 
-	login, hashemail := generadorHash(email, contraseña)
-	return login, hashemail
+func formPassword() string {
+	fmt.Println("Introduzca su contraseña: ")
+	passwordInput, err := term.ReadPassword(0)
+	if err != nil {
+		return ""
+	}
+	fmt.Println("Verificando contraseña, introduzca su contraseña de nuevo: ")
+	verifyPassword, err := term.ReadPassword(0)
+	if err != nil {
+		return ""
+	}
+	if string(passwordInput) != string(verifyPassword) {
+		return ""
+	}
+	return string(passwordInput)
+}
+
+func singupData() (string, string) {
+	var email string
+
+	fmt.Println("Introduzca su email: ")
+	fmt.Scan(&email)
+	password := formPasswordContinue()
+
+	login, hashemail := utils.GeneradorHash(email, string(password))
+	sessionObject.SetKey(login)
+	return utils.EncodingHashToBase64(login), utils.EncodingHashToBase64(hashemail)
 }
 
 func generadorContrasena() string {
-
+	// TODO: password auto-generate
 	return "to do"
 }
 
@@ -202,48 +134,32 @@ func anadirContrasena() {
 	fmt.Println("Introduzca el sitio web: ")
 	fmt.Scan(&webSite)
 
-	var opcion string
+	var opcion []byte = make([]byte, 1)
 	for {
 		fmt.Println("Seleccione 1 para una clave aleatoria\n Seleccione 2 para insertar la clave")
-		fmt.Scan(&opcion)
-		if opcion == "1" {
+		os.Stdin.Read(opcion)
+		if string(opcion) == "1" {
 			password = generadorContrasena()
 			break
-		} else if opcion == "2" {
-			var contrasena string
-			var contrasena2 string
-			for {
-				fmt.Println("Introduzca su contraseña: ")
-				fmt.Scan(&contrasena)
-				fmt.Println("Verificando contraseña, introduzca su contraseña de nuevo: ")
-				fmt.Scan(&contrasena2)
-				if contrasena == contrasena2 {
-					password = contrasena
-					break
-				} else {
-					fmt.Println("Las contaseñas no coinciden")
-				}
-			}
+		} else if string(opcion) == "2" {
+			password = formPasswordContinue()
 			break
-		} else {
-			fmt.Print("La opcion no es correcta, introduzcala de nuevo")
 		}
+		fmt.Print("La opcion no es correcta, introduzcala de nuevo")
 	}
 	for {
-		fmt.Println("Desea añadir notas (Si/No): ")
-		fmt.Scan(&opcion)
-		if opcion == "Si" || opcion == "si" {
+		fmt.Println("Desea añadir notas (s/N): ")
+		os.Stdin.Read(opcion)
+		if strings.ToLower(string(opcion)) == "s" {
 			fmt.Println("Introduzca las notas : ")
 			fmt.Scan(&notes)
 			break
-		} else if opcion == "No" || opcion == "no" {
+		} else {
 			notes = "No hay notas"
 			break
-		} else {
-			fmt.Println("La opcion no es correcta, intentelo de nuevo")
 		}
 	}
-	user := User{
+	user := user.User{
 		Username: username,
 		Email:    email,
 		Password: password,
@@ -264,7 +180,7 @@ func mostrarContrasenas() {
 			maximo = len(contrasenas) - 1
 		}
 		for {
-			fmt.Println("contaseña " + strconv.Itoa(indice) + ": " + userToString(contrasenas[indice]))
+			fmt.Println("contaseña " + strconv.Itoa(indice) + ": " + contrasenas[indice].UserToString())
 			if maximo == indice {
 				break
 			}
@@ -286,12 +202,12 @@ func mostrarContrasenas() {
 
 func modificarContrasena(posicion int) {
 
-	var opcion string
+	var opcion []byte = make([]byte, 1)
 	var nuevo string
 	user := contrasenas[posicion]
 	fmt.Println("si desaea modificar el nombre de usuario pulse 1\n si desea modificar el email pulse 2\n si desea modificar la contraseña pulse 3\n si desea modificar el sitio web pulse 4\n si desea modificar o añadir notas pulse 5")
-	fmt.Scan(&opcion)
-	switch opcion {
+	os.Stdin.Read(opcion)
+	switch string(opcion) {
 	case "1":
 		fmt.Println("Introduzca el nuevo nombre: ")
 		fmt.Scan(&nuevo)
@@ -317,9 +233,9 @@ func modificarContrasena(posicion int) {
 		fmt.Scan(&opcion)
 		fmt.Println("Introduzca la nueva nota: ")
 		fmt.Scan(&nuevo)
-		if opcion == "1" {
+		if string(opcion) == "1" {
 			user.Notes = nuevo
-		} else if opcion == "2" {
+		} else if string(opcion) == "2" {
 			user.Notes += ", " + nuevo
 		}
 		contrasenas[posicion] = user
@@ -333,7 +249,7 @@ func borrarContrasena(posicion int) {
 }
 
 func pruebas() {
-	user := User{
+	user := user.User{
 		Username: "vicente",
 		Email:    "vicentemail",
 		Password: "123",
@@ -341,7 +257,7 @@ func pruebas() {
 		Notes:    "estas notas son de ejemplo",
 	}
 
-	user2 := User{
+	/* user2 := user.User{
 		Username: "vicente2",
 		Email:    "vicentemail2",
 		Password: "1",
@@ -349,16 +265,16 @@ func pruebas() {
 		Notes:    "estas notas son de ejemplo2",
 	}
 
-	user3 := User{
+	user3 := user.User{
 		Username: "vicente3",
 		Email:    "vicentemail3",
 		Password: "2",
 		WebSite:  "facebook3",
 		Notes:    "estas notas son de ejemplo3",
-	}
+	} */
 	contrasenas = append(contrasenas, user)
-	contrasenas = append(contrasenas, user2)
-	contrasenas = append(contrasenas, user3)
+	/* contrasenas = append(contrasenas, user2)
+	contrasenas = append(contrasenas, user3) */
 	fmt.Println()
 	fmt.Println("mostrando usuarios")
 	mostrarContrasenas()
@@ -371,34 +287,34 @@ func pruebas() {
 	fmt.Println("mostrando usuarios")
 	mostrarContrasenas()
 
-	fmt.Println()
+	/* fmt.Println()
 	fmt.Println("modificando un usuario")
-	modificarContrasena(3)
+	modificarContrasena(3) */
 
 	fmt.Println()
 	fmt.Println("mostrando usuarios")
 	mostrarContrasenas()
 
-	fmt.Println()
+	/* fmt.Println()
 	fmt.Println("borrando un usuario")
-	borrarContrasena(2)
+	borrarContrasena(2) */
 
 	fmt.Println()
 	fmt.Println("mostrando usuarios")
 	mostrarContrasenas()
 
 	fmt.Println()
-	string1 := userToString(user)
+	string1 := user.UserToString()
 	fmt.Println(string1)
 
-	textocifrado, errorsalida := encryptChaCha(string1)
+	textocifrado, errorsalida := utils.EncryptChaCha(string1, sessionObject.GetKey())
 	if errorsalida != nil {
 		fmt.Println(errorsalida)
 	}
 
 	fmt.Println("Texto cifrado:", textocifrado)
 
-	textodescifrado, errorsalida := decryptChaCha(textocifrado)
+	textodescifrado, errorsalida := utils.DecryptChaCha(textocifrado, sessionObject.GetKey())
 	if errorsalida != nil {
 		fmt.Println(errorsalida)
 	}
@@ -409,29 +325,54 @@ func pruebas() {
 	fmt.Println(userX)
 }
 
-func main() {
-	var option string
-	mainMenu()
-	fmt.Scan(&option)
-	switch option {
-	case "1":
-		i := 0
-		for {
-			loginHash, hashemail := singinData()
-			singin(loginHash, hashemail)
-			if i == 3 {
-				fmt.Println("Numero de intentos superados, intentelo mas tarde")
-				break
-			}
-			i++
-			break
-		}
+func initServices() {
+	httpClient := client.New()
+	userService = &services.UserService{HttpClient: httpClient}
+}
 
-	case "2":
-		loginHash, hashemail := singupData()
-		singin(loginHash, hashemail)
-	default:
-		fmt.Println("Error al escoger opcion")
+func main() {
+	sessionObject = session.New()
+	initServices()
+	mainui.AppLogo()
+	for {
+		mainui.MainMenu()
+		var option []byte = make([]byte, 1)
+		os.Stdin.Read(option)
+		switch string(option) {
+		case "1":
+			isSignedIn := false
+			var key []byte
+			for i := 0; i < MAX_TRIES_LOGIN && !isSignedIn; i++ {
+				loginHash, hashemail := loginui.SignInUI()
+				if loginHash == nil {
+					continue
+				}
+				key = loginHash
+				isSignedIn = singin(utils.EncodingHashToBase64(loginHash), utils.EncodingHashToBase64(hashemail))
+			}
+
+			if !isSignedIn {
+				fmt.Println("Numero de intentos superados, inténtelo mas tarde")
+			} else {
+				fmt.Println("Logueado")
+				sessionObject.SetKey(key)
+
+				// TODO: go to initial page
+			}
+
+		case "2":
+			loginHash, hashemail := singupData()
+			fmt.Println(loginHash)
+			fmt.Println(hashemail)
+			// TODO: userService register user
+
+			// TODO: go to main menu
+		case "q":
+			fmt.Println("Saliendo...")
+			os.Exit(0)
+		default:
+			fmt.Println("Error al escoger opcion")
+		}
 	}
-	pruebas()
+	//pruebas()
 }
