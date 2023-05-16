@@ -2,7 +2,7 @@ package login
 
 import (
 	"fmt"
-	"prueba/pkg/utils"
+	"passwordsAdmin/pkg/utils"
 
 	"golang.org/x/term"
 )

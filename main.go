@@ -3,13 +3,13 @@ package main
 import (
 	"fmt"
 	"os"
-	"prueba/client"
-	"prueba/pkg/user"
-	"prueba/pkg/utils"
-	"prueba/services"
-	"prueba/session"
-	loginui "prueba/ui/login"
-	mainui "prueba/ui/main"
+	"passwordsAdmin/client"
+	"passwordsAdmin/pkg/user"
+	"passwordsAdmin/pkg/utils"
+	"passwordsAdmin/services"
+	"passwordsAdmin/session"
+	loginui "passwordsAdmin/ui/login"
+	mainui "passwordsAdmin/ui/main"
 	"strconv"
 	"strings"
 
@@ -180,7 +180,7 @@ func mostrarContrasenas() {
 			maximo = len(contrasenas) - 1
 		}
 		for {
-			fmt.Println("contaseña " + strconv.Itoa(indice) + ": " + contrasenas[indice].UserToString())
+			fmt.Println("contaseña " + strconv.Itoa(indice) + ": " + contrasenas[indice].ToString())
 			if maximo == indice {
 				break
 			}
@@ -248,8 +248,8 @@ func borrarContrasena(posicion int) {
 	contrasenas = append(contrasenas[:posicion], contrasenas[posicion+1:]...)
 }
 
-func pruebas() {
-	user := user.User{
+func passwordsAdmin() {
+	user1 := user.User{
 		Username: "vicente",
 		Email:    "vicentemail",
 		Password: "123",
@@ -257,7 +257,7 @@ func pruebas() {
 		Notes:    "estas notas son de ejemplo",
 	}
 
-	/* user2 := user.User{
+	user2 := user.User{
 		Username: "vicente2",
 		Email:    "vicentemail2",
 		Password: "1",
@@ -271,10 +271,10 @@ func pruebas() {
 		Password: "2",
 		WebSite:  "facebook3",
 		Notes:    "estas notas son de ejemplo3",
-	} */
-	contrasenas = append(contrasenas, user)
-	/* contrasenas = append(contrasenas, user2)
-	contrasenas = append(contrasenas, user3) */
+	}
+	contrasenas = append(contrasenas, user1)
+	contrasenas = append(contrasenas, user2)
+	contrasenas = append(contrasenas, user3)
 	fmt.Println()
 	fmt.Println("mostrando usuarios")
 	mostrarContrasenas()
@@ -304,7 +304,7 @@ func pruebas() {
 	mostrarContrasenas()
 
 	fmt.Println()
-	string1 := user.UserToString()
+	string1 := user1.ToString()
 	fmt.Println(string1)
 
 	textocifrado, errorsalida := utils.EncryptChaCha(string1, sessionObject.GetKey())
@@ -374,5 +374,5 @@ func main() {
 			fmt.Println("Error al escoger opcion")
 		}
 	}
-	//pruebas()
+	//passwordsAdmin()
 }

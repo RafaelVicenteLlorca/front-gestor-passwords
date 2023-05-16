@@ -1,6 +1,6 @@
 package session
 
-import "prueba/pkg/user"
+import "passwordsAdmin/pkg/user"
 
 type Session struct {
 	key       []byte

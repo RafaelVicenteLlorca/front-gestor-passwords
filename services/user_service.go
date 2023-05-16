@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"prueba/client"
-	"prueba/pkg/request"
+	"passwordsAdmin/client"
+	"passwordsAdmin/pkg/request"
 )
 
 type UserService struct {

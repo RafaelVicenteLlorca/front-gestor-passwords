@@ -8,6 +8,6 @@ type User struct {
 	Notes    string
 }
 
-func (u *User) UserToString() string {
+func (u *User) ToString() string {
 	return "Usuario: " + u.Username + " email: " + u.Email + " contraseña: " + u.Password + " sitioweb: " + u.WebSite + " notas: " + u.Notes
 }

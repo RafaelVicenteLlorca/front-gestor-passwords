@@ -1,4 +1,4 @@
-module prueba
+module passwordsAdmin
 
 go 1.18
 
