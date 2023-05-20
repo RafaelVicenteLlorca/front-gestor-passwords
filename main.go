@@ -1,7 +1,9 @@
 package main
 
 import (
+	"crypto/rand"
 	"fmt"
+	"math/big"
 	"os"
 	"passwordsAdmin/client"
 	"passwordsAdmin/pkg/user"
@@ -113,9 +115,19 @@ func singupData() (string, string) {
 	return utils.EncodingHashToBase64(login), utils.EncodingHashToBase64(hashemail)
 }
 
-func generadorContrasena() string {
-	// TODO: password auto-generate
-	return "to do"
+func generadorContrasena(tam int) string {
+	const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890?!@#$%^&*()_+[]{}"
+	if tam < 8 {
+		tam = 12
+	}
+
+	result := make([]byte, tam)
+	for i := range result {
+		randomIndex, _ := rand.Int(rand.Reader, big.NewInt(int64(len(chars))))
+		result[i] = chars[randomIndex.Int64()]
+	}
+	return string(result)
+
 }
 
 func anadirContrasena() {
@@ -139,7 +151,10 @@ func anadirContrasena() {
 		fmt.Println("Seleccione 1 para una clave aleatoria\n Seleccione 2 para insertar la clave")
 		os.Stdin.Read(opcion)
 		if string(opcion) == "1" {
-			password = generadorContrasena()
+			fmt.Println("Seleccione el tamaño de la clave (minimo 8)")
+			var tam int = 0
+			fmt.Scan(&tam)
+			password = generadorContrasena(tam)
 			break
 		} else if string(opcion) == "2" {
 			password = formPasswordContinue()
