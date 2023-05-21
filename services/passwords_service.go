@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"passwordsAdmin/client"
 	"passwordsAdmin/pkg/request"
+
+	"github.com/TwiN/go-color"
 )
 
 var PasswordsServiceRequest = &PasswordsService{HttpClient: client.HttpClient}
@@ -21,25 +23,29 @@ type PasswordsCreateRequest struct {
 	Content string `json:"content"`
 }
 
-type PasswordsCreateResponse struct {
+type PasswordsResponse struct {
 	ID        string `json:"id"`
 	Content   string `json:"content"`
 	UpdatedAt string `json:"updated_at"`
 }
 
-func (ps *PasswordsService) Create(pcr PasswordsCreateRequest) (*PasswordsCreateResponse, error) {
+type ErrorPasswordMessage struct {
+	Message string `json:"message"`
+}
+
+func (ps *PasswordsService) Create(pcr PasswordsCreateRequest) (*PasswordsResponse, error) {
 	bodyReq := bytes.NewBuffer(request.JSON(pcr))
 	url := ps.HttpClient.BackendUri + "passwords"
 	req, _ := http.NewRequest(http.MethodPost, url, bodyReq)
 	resp, err := ps.HttpClient.Do(req)
 	if err != nil || resp.StatusCode != 201 {
-		return &PasswordsCreateResponse{}, errors.New("error al crear la contraseña")
+		return &PasswordsResponse{}, errors.New("error al crear la contraseña")
 	}
 	body, err := ioutil.ReadAll(resp.Body)
-	pcres := PasswordsCreateResponse{}
+	pcres := PasswordsResponse{}
 	if err != nil {
 		fmt.Println(err)
-		return &PasswordsCreateResponse{}, err
+		return &PasswordsResponse{}, err
 	}
 
 	defer resp.Body.Close()
@@ -47,7 +53,41 @@ func (ps *PasswordsService) Create(pcr PasswordsCreateRequest) (*PasswordsCreate
 	err = json.Unmarshal(body, &pcres)
 	if err != nil {
 		fmt.Println(err)
-		return &PasswordsCreateResponse{}, err
+		return &PasswordsResponse{}, err
 	}
 	return &pcres, nil
+}
+
+func (ps *PasswordsService) GetById(id string) (PasswordsResponse, error) {
+	url := ps.HttpClient.BackendUri + "passwords/" + id
+	req, _ := http.NewRequest(http.MethodGet, url, nil)
+	resp, err := ps.HttpClient.Do(req)
+	if err != nil {
+		fmt.Println(color.Colorize(color.Red, err.Error()))
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	defer resp.Body.Close()
+	if err != nil {
+		fmt.Println(color.Colorize(color.Red, err.Error()))
+		return PasswordsResponse{}, err
+	}
+
+	if resp.StatusCode != 200 {
+		errorMessage := ErrorPasswordMessage{}
+		err = json.Unmarshal(body, &errorMessage)
+		if err != nil {
+			fmt.Println(err)
+			return PasswordsResponse{}, err
+		}
+		return PasswordsResponse{}, errors.New(errorMessage.Message)
+	}
+	pcres := PasswordsResponse{}
+
+	err = json.Unmarshal(body, &pcres)
+	if err != nil {
+		fmt.Println(err)
+		return PasswordsResponse{}, err
+	}
+	return pcres, nil
 }
