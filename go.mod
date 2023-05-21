@@ -8,6 +8,7 @@ require (
 )
 
 require (
+	github.com/TwiN/go-color v1.4.0 // indirect
 	golang.org/x/sys v0.8.0 // indirect
 	golang.org/x/term v0.8.0 // indirect
 )

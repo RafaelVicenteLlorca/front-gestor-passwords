@@ -8,109 +8,28 @@ import (
 	"passwordsAdmin/pkg/utils"
 	"passwordsAdmin/services"
 	"passwordsAdmin/session"
+	"passwordsAdmin/ui/login"
 	loginui "passwordsAdmin/ui/login"
 	mainui "passwordsAdmin/ui/main"
 	"strconv"
 	"strings"
 
-	"golang.org/x/term"
+	"github.com/TwiN/go-color"
 )
 
 var contrasenas []user.User
-var sessionObject *session.Session
-
-var (
-	userService *services.UserService
-)
 
 const MAX_TRIES_LOGIN = 3
 
-func stringToUser(usuarioString string) user.User {
-	// Dividir la cadena en tres partes usando el separador " "
-
-	partes := strings.Split(usuarioString, " ")
-
-	// Extraer los valores de usuario, email y contraseña
-	username := strings.TrimPrefix(partes[1], "Usuario:")
-	email := strings.TrimPrefix(partes[3], "email:")
-	password := strings.TrimPrefix(partes[5], "contraseña:")
-	webSite := strings.TrimPrefix(partes[7], "sitioweb:")
-
-	notesIndex := -1
-
-	for i, v := range partes {
-		if v == "notas:" {
-			notesIndex = i
-			break
-		}
-	}
-
-	var notes string
-
-	if notesIndex != -1 {
-		notes = strings.Join(partes[notesIndex+1:], " ")
-	}
-	// Crear una nueva instancia de la estructura User con los valores extraídos
-	user := user.User{
-		Username: strings.TrimSpace(username),
-		Email:    strings.TrimSpace(email),
-		Password: strings.TrimSpace(password),
-		WebSite:  strings.TrimSpace(webSite),
-		Notes:    strings.TrimSpace(notes),
-	}
-
-	return user
-}
-
-func singin(loginHash string, hashemail string) bool {
+func singInRequest(loginHash string, hashemail string) bool {
 	lr := services.LoginRequest{Email: loginHash, Password: hashemail}
-	lresp, err := userService.Login(lr)
+	lresp, err := services.UserServiceRequest.Login(lr)
 	if err != nil {
 		fmt.Println(err.Error())
 		return false
 	}
-	userService.HttpClient.SetToken(lresp.Token)
+	client.HttpClient.SetToken(lresp.Token)
 	return true
-}
-
-func formPasswordContinue() string {
-	for {
-		password := formPassword()
-		if password == "" {
-			fmt.Println("Las contraseñas no coinciden, intentelo de nuevo")
-			continue
-		}
-		return password
-	}
-}
-
-func formPassword() string {
-	fmt.Println("Introduzca su contraseña: ")
-	passwordInput, err := term.ReadPassword(0)
-	if err != nil {
-		return ""
-	}
-	fmt.Println("Verificando contraseña, introduzca su contraseña de nuevo: ")
-	verifyPassword, err := term.ReadPassword(0)
-	if err != nil {
-		return ""
-	}
-	if string(passwordInput) != string(verifyPassword) {
-		return ""
-	}
-	return string(passwordInput)
-}
-
-func singupData() (string, string) {
-	var email string
-
-	fmt.Println("Introduzca su email: ")
-	fmt.Scan(&email)
-	password := formPasswordContinue()
-
-	login, hashemail := utils.GeneradorHash(email, string(password))
-	sessionObject.SetKey(login)
-	return utils.EncodingHashToBase64(login), utils.EncodingHashToBase64(hashemail)
 }
 
 func generadorContrasena() string {
@@ -142,7 +61,7 @@ func anadirContrasena() {
 			password = generadorContrasena()
 			break
 		} else if string(opcion) == "2" {
-			password = formPasswordContinue()
+			password = login.FormPasswordContinue()
 			break
 		}
 		fmt.Print("La opcion no es correcta, introduzcala de nuevo")
@@ -307,32 +226,45 @@ func passwordsAdmin() {
 	string1 := user1.ToString()
 	fmt.Println(string1)
 
-	textocifrado, errorsalida := utils.EncryptChaCha(string1, sessionObject.GetKey())
+	textocifrado, errorsalida := utils.EncryptChaCha(string1, session.SessionObject.GetKey())
 	if errorsalida != nil {
 		fmt.Println(errorsalida)
 	}
 
 	fmt.Println("Texto cifrado:", textocifrado)
 
-	textodescifrado, errorsalida := utils.DecryptChaCha(textocifrado, sessionObject.GetKey())
+	textodescifrado, errorsalida := utils.DecryptChaCha(textocifrado, session.SessionObject.GetKey())
 	if errorsalida != nil {
 		fmt.Println(errorsalida)
 	}
 
 	fmt.Println("Texto descifrado:", textodescifrado)
 
-	userX := stringToUser(textodescifrado)
+	userX := user.NewByString(textodescifrado)
 	fmt.Println(userX)
 }
 
-func initServices() {
-	httpClient := client.New()
-	userService = &services.UserService{HttpClient: httpClient}
+func singUp() (services.RegisterResponse, error) {
+	loginHash, hashemail := login.SingUpData()
+	registerRequest := services.RegisterRequest{Email: loginHash, Password: hashemail}
+	return services.UserServiceRequest.Register(registerRequest)
+}
+
+func signIn() ([]byte, bool) {
+	isSignedIn := false
+	var key []byte
+	for i := 0; i < MAX_TRIES_LOGIN && !isSignedIn; i++ {
+		loginHash, hashemail := loginui.SignInUI()
+		if loginHash == nil {
+			continue
+		}
+		key = loginHash
+		isSignedIn = singInRequest(utils.EncodingHashToBase64(loginHash), utils.EncodingHashToBase64(hashemail))
+	}
+	return key, isSignedIn
 }
 
 func main() {
-	sessionObject = session.New()
-	initServices()
 	mainui.AppLogo()
 	for {
 		mainui.MainMenu()
@@ -340,33 +272,22 @@ func main() {
 		os.Stdin.Read(option)
 		switch string(option) {
 		case "1":
-			isSignedIn := false
-			var key []byte
-			for i := 0; i < MAX_TRIES_LOGIN && !isSignedIn; i++ {
-				loginHash, hashemail := loginui.SignInUI()
-				if loginHash == nil {
-					continue
-				}
-				key = loginHash
-				isSignedIn = singin(utils.EncodingHashToBase64(loginHash), utils.EncodingHashToBase64(hashemail))
-			}
-
+			key, isSignedIn := signIn()
 			if !isSignedIn {
-				fmt.Println("Numero de intentos superados, inténtelo mas tarde")
-			} else {
-				fmt.Println("Logueado")
-				sessionObject.SetKey(key)
-
-				// TODO: go to initial page
+				fmt.Println(color.Colorize(color.Red, "Numero de intentos superados, inténtelo mas tarde"))
+				continue
 			}
+			fmt.Println(color.Colorize(color.Green, "Logueado"))
+			session.SessionObject.SetKey(key)
 
+			// TODO: go to initial page
 		case "2":
-			loginHash, hashemail := singupData()
-			fmt.Println(loginHash)
-			fmt.Println(hashemail)
-			// TODO: userService register user
-
-			// TODO: go to main menu
+			_, err := singUp()
+			if err != nil {
+				fmt.Println(color.Colorize(color.Red, err.Error()))
+				continue
+			}
+			fmt.Println("usuario registrado!")
 		case "q":
 			fmt.Println("Saliendo...")
 			os.Exit(0)
@@ -374,5 +295,4 @@ func main() {
 			fmt.Println("Error al escoger opcion")
 		}
 	}
-	//passwordsAdmin()
 }

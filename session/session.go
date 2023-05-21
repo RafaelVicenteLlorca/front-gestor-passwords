@@ -7,6 +7,8 @@ type Session struct {
 	passwords []user.User
 }
 
+var SessionObject = New()
+
 func New() *Session {
 	return &Session{key: []byte(""), passwords: []user.User{}}
 }

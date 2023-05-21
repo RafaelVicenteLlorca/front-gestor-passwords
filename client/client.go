@@ -4,14 +4,12 @@ import (
 	"crypto/tls"
 	"net/http"
 	"os"
-	"sync"
 
 	_ "github.com/joho/godotenv/autoload"
 )
 
 var (
-	httpClient *HTTPClientCustom
-	once       sync.Once
+	HttpClient = New()
 )
 
 type HTTPClientCustom struct {
@@ -27,8 +25,8 @@ func initTransport() *http.Transport {
 	}
 }
 
-func initServer() {
-	httpClient = &HTTPClientCustom{
+func initServer() *HTTPClientCustom {
+	return &HTTPClientCustom{
 		Client:          &http.Client{Transport: initTransport()},
 		BackendUri:      os.Getenv("BACKEND_URI"),
 		ContentTypeJSON: "application/json",
@@ -37,8 +35,7 @@ func initServer() {
 }
 
 func New() *HTTPClientCustom {
-	once.Do(initServer)
-	return httpClient
+	return initServer()
 }
 
 func (c *HTTPClientCustom) SetToken(token string) {
