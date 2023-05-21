@@ -14,6 +14,7 @@ import (
 )
 
 var PasswordsServiceRequest = &PasswordsService{HttpClient: client.HttpClient}
+var passwordsUrl = "passwords"
 
 type PasswordsService struct {
 	HttpClient *client.HTTPClientCustom
@@ -30,7 +31,7 @@ type PasswordsUpdateRequest struct {
 type PasswordsResponse struct {
 	ID        string `json:"id"`
 	Content   string `json:"content"`
-	UpdatedAt string `json:"updated_at"`
+	UpdatedAt string `json:"updated_at,omitempty"`
 }
 
 type ErrorPasswordMessage struct {
@@ -39,7 +40,7 @@ type ErrorPasswordMessage struct {
 
 func (ps *PasswordsService) Create(pcr PasswordsCreateRequest) (*PasswordsResponse, error) {
 	bodyReq := bytes.NewBuffer(request.JSON(pcr))
-	url := ps.HttpClient.BackendUri + "passwords"
+	url := ps.HttpClient.BackendUri + passwordsUrl
 	req, _ := http.NewRequest(http.MethodPost, url, bodyReq)
 	resp, err := ps.HttpClient.Do(req)
 	if err != nil || resp.StatusCode != 201 {
@@ -63,7 +64,7 @@ func (ps *PasswordsService) Create(pcr PasswordsCreateRequest) (*PasswordsRespon
 }
 
 func (ps *PasswordsService) GetById(id string) (PasswordsResponse, error) {
-	url := ps.HttpClient.BackendUri + "passwords/" + id
+	url := ps.HttpClient.BackendUri + passwordsUrl + "/" + id
 	req, _ := http.NewRequest(http.MethodGet, url, nil)
 	resp, err := ps.HttpClient.Do(req)
 	if err != nil {
@@ -97,7 +98,7 @@ func (ps *PasswordsService) GetById(id string) (PasswordsResponse, error) {
 }
 
 func (ps *PasswordsService) GetAll() ([]PasswordsResponse, error) {
-	url := ps.HttpClient.BackendUri + "passwords"
+	url := ps.HttpClient.BackendUri + passwordsUrl
 	req, _ := http.NewRequest(http.MethodGet, url, nil)
 	resp, err := ps.HttpClient.Do(req)
 	if err != nil {
@@ -130,15 +131,16 @@ func (ps *PasswordsService) GetAll() ([]PasswordsResponse, error) {
 	return pcres, nil
 }
 
-func (ps *PasswordsService) Update(id string, pcr PasswordsUpdateRequest) (*PasswordsResponse, error) {
+func (ps *PasswordsService) Update(id string, pcr PasswordsUpdateRequest) error {
 	bodyReq := bytes.NewBuffer(request.JSON(pcr))
-	url := ps.HttpClient.BackendUri + "passwords/" + id
+	url := ps.HttpClient.BackendUri + passwordsUrl + "/" + id
 	req, _ := http.NewRequest(http.MethodPut, url, bodyReq)
 	resp, err := ps.HttpClient.Do(req)
-	if err != nil || resp.StatusCode != 201 {
-		return &PasswordsResponse{}, errors.New("error al actualizar contraseña")
+	if err != nil || resp.StatusCode != 200 {
+		return errors.New("error al actualizar contraseña")
 	}
-	body, err := ioutil.ReadAll(resp.Body)
+	return nil
+	/* body, err := ioutil.ReadAll(resp.Body)
 	pcres := PasswordsResponse{}
 	if err != nil {
 		fmt.Println(err)
@@ -152,5 +154,16 @@ func (ps *PasswordsService) Update(id string, pcr PasswordsUpdateRequest) (*Pass
 		fmt.Println(err)
 		return &PasswordsResponse{}, err
 	}
-	return &pcres, nil
+	return &pcres, nil */
+}
+
+func (ps *PasswordsService) Delete(id string) error {
+	url := ps.HttpClient.BackendUri + passwordsUrl + "/" + id
+	req, _ := http.NewRequest(http.MethodDelete, url, nil)
+	resp, err := ps.HttpClient.Do(req)
+	if err != nil || resp.StatusCode != 204 {
+		return errors.New("error eliminar la contraseña")
+	}
+
+	return nil
 }
