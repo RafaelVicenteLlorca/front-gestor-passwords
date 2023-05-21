@@ -91,3 +91,37 @@ func (ps *PasswordsService) GetById(id string) (PasswordsResponse, error) {
 	}
 	return pcres, nil
 }
+
+func (ps *PasswordsService) GetAll() ([]PasswordsResponse, error) {
+	url := ps.HttpClient.BackendUri + "passwords"
+	req, _ := http.NewRequest(http.MethodGet, url, nil)
+	resp, err := ps.HttpClient.Do(req)
+	if err != nil {
+		fmt.Println(color.Colorize(color.Red, err.Error()))
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	defer resp.Body.Close()
+	if err != nil {
+		fmt.Println(color.Colorize(color.Red, err.Error()))
+		return []PasswordsResponse{}, err
+	}
+
+	if resp.StatusCode != 200 {
+		errorMessage := ErrorPasswordMessage{}
+		err = json.Unmarshal(body, &errorMessage)
+		if err != nil {
+			fmt.Println(err)
+			return []PasswordsResponse{}, err
+		}
+		return []PasswordsResponse{}, errors.New(errorMessage.Message)
+	}
+	pcres := []PasswordsResponse{}
+
+	err = json.Unmarshal(body, &pcres)
+	if err != nil {
+		fmt.Println(err)
+		return []PasswordsResponse{}, err
+	}
+	return pcres, nil
+}

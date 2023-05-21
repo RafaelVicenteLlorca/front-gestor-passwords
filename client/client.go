@@ -48,7 +48,7 @@ func (c *HTTPClientCustom) GetToken() string {
 
 func (c *HTTPClientCustom) Do(req *http.Request) (*http.Response, error) {
 	if c.token != "" {
-		req.Header.Add("Authoritation", "Bearer "+c.token)
+		req.Header.Add("Authorization", "Bearer "+c.token)
 	}
 	req.Header.Add("Content-Type", c.ContentTypeJSON)
 	return c.Client.Do(req)
