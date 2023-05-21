@@ -8,7 +8,6 @@ import (
 	"passwordsAdmin/pkg/utils"
 	"passwordsAdmin/services"
 	"passwordsAdmin/session"
-	"passwordsAdmin/ui/login"
 	loginui "passwordsAdmin/ui/login"
 	mainui "passwordsAdmin/ui/main"
 	"strconv"
@@ -61,7 +60,7 @@ func anadirContrasena() {
 			password = generadorContrasena()
 			break
 		} else if string(opcion) == "2" {
-			password = login.FormPasswordContinue()
+			password = loginui.FormPasswordContinue()
 			break
 		}
 		fmt.Print("La opcion no es correcta, introduzcala de nuevo")
@@ -78,7 +77,7 @@ func anadirContrasena() {
 			break
 		}
 	}
-	user := user.User{
+	user1 := user.User{
 		Username: username,
 		Email:    email,
 		Password: password,
@@ -86,7 +85,7 @@ func anadirContrasena() {
 		Notes:    notes,
 	}
 
-	contrasenas = append(contrasenas, user)
+	contrasenas = append(contrasenas, user1)
 }
 
 func mostrarContrasenas() {
@@ -123,41 +122,41 @@ func modificarContrasena(posicion int) {
 
 	var opcion []byte = make([]byte, 1)
 	var nuevo string
-	user := contrasenas[posicion]
+	user1 := contrasenas[posicion]
 	fmt.Println("si desaea modificar el nombre de usuario pulse 1\n si desea modificar el email pulse 2\n si desea modificar la contraseña pulse 3\n si desea modificar el sitio web pulse 4\n si desea modificar o añadir notas pulse 5")
 	os.Stdin.Read(opcion)
 	switch string(opcion) {
 	case "1":
 		fmt.Println("Introduzca el nuevo nombre: ")
 		fmt.Scan(&nuevo)
-		user.Username = nuevo
-		contrasenas[posicion] = user
+		user1.Username = nuevo
+		contrasenas[posicion] = user1
 	case "2":
 		fmt.Println("Introduzca el nuevo email: ")
 		fmt.Scan(&nuevo)
-		user.Email = nuevo
-		contrasenas[posicion] = user
+		user1.Email = nuevo
+		contrasenas[posicion] = user1
 	case "3":
 		fmt.Println("Introduzca la nueva contraseña: ")
 		fmt.Scan(&nuevo)
-		user.Password = nuevo
-		contrasenas[posicion] = user
+		user1.Password = nuevo
+		contrasenas[posicion] = user1
 	case "4":
 		fmt.Println("Introduzca el nuevo sitio web: ")
 		fmt.Scan(&nuevo)
-		user.WebSite = nuevo
-		contrasenas[posicion] = user
+		user1.WebSite = nuevo
+		contrasenas[posicion] = user1
 	case "5":
 		fmt.Println("desea añadir otra nota o modificar la actual (Añadir 1, Modificar 2): ")
 		fmt.Scan(&opcion)
 		fmt.Println("Introduzca la nueva nota: ")
 		fmt.Scan(&nuevo)
 		if string(opcion) == "1" {
-			user.Notes = nuevo
+			user1.Notes = nuevo
 		} else if string(opcion) == "2" {
-			user.Notes += ", " + nuevo
+			user1.Notes += ", " + nuevo
 		}
-		contrasenas[posicion] = user
+		contrasenas[posicion] = user1
 	default:
 		fmt.Println("el valor no es correcto")
 	}
@@ -245,7 +244,7 @@ func passwordsAdmin() {
 }
 
 func singUp() (services.RegisterResponse, error) {
-	loginHash, hashemail := login.SingUpData()
+	loginHash, hashemail := loginui.SingUpData()
 	registerRequest := services.RegisterRequest{Email: loginHash, Password: hashemail}
 	return services.UserServiceRequest.Register(registerRequest)
 }
