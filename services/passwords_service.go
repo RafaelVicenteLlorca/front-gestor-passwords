@@ -23,6 +23,10 @@ type PasswordsCreateRequest struct {
 	Content string `json:"content"`
 }
 
+type PasswordsUpdateRequest struct {
+	Content string `json:"content"`
+}
+
 type PasswordsResponse struct {
 	ID        string `json:"id"`
 	Content   string `json:"content"`
@@ -124,4 +128,29 @@ func (ps *PasswordsService) GetAll() ([]PasswordsResponse, error) {
 		return []PasswordsResponse{}, err
 	}
 	return pcres, nil
+}
+
+func (ps *PasswordsService) Update(id string, pcr PasswordsUpdateRequest) (*PasswordsResponse, error) {
+	bodyReq := bytes.NewBuffer(request.JSON(pcr))
+	url := ps.HttpClient.BackendUri + "passwords/" + id
+	req, _ := http.NewRequest(http.MethodPut, url, bodyReq)
+	resp, err := ps.HttpClient.Do(req)
+	if err != nil || resp.StatusCode != 201 {
+		return &PasswordsResponse{}, errors.New("error al actualizar contraseña")
+	}
+	body, err := ioutil.ReadAll(resp.Body)
+	pcres := PasswordsResponse{}
+	if err != nil {
+		fmt.Println(err)
+		return &PasswordsResponse{}, err
+	}
+
+	defer resp.Body.Close()
+
+	err = json.Unmarshal(body, &pcres)
+	if err != nil {
+		fmt.Println(err)
+		return &PasswordsResponse{}, err
+	}
+	return &pcres, nil
 }
