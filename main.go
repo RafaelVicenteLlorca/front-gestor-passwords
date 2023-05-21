@@ -1,7 +1,9 @@
 package main
 
 import (
+	"crypto/rand"
 	"fmt"
+	"math/big"
 	"os"
 	"passwordsAdmin/client"
 	"passwordsAdmin/pkg/user"
@@ -20,6 +22,11 @@ var contrasenas []user.User
 
 const MAX_TRIES_LOGIN = 3
 
+type data struct {
+	Id      uint
+	content string
+}
+
 func singInRequest(loginHash string, hashemail string) bool {
 	lr := services.LoginRequest{Email: loginHash, Password: hashemail}
 	lresp, err := services.UserServiceRequest.Login(lr)
@@ -31,9 +38,14 @@ func singInRequest(loginHash string, hashemail string) bool {
 	return true
 }
 
-func generadorContrasena() string {
-	// TODO: password auto-generate
-	return "to do"
+func generadorContrasena(size int) string {
+	const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890?!@#$%^&*()_+[]{}"
+	result := make([]byte, size)
+	for i := range result {
+		randomIndex, _ := rand.Int(rand.Reader, big.NewInt(int64(len(chars))))
+		result[i] = chars[randomIndex.Int64()]
+	}
+	return string(result)
 }
 
 func anadirContrasena() {
@@ -57,10 +69,32 @@ func anadirContrasena() {
 		fmt.Println("Seleccione 1 para una clave aleatoria\n Seleccione 2 para insertar la clave")
 		os.Stdin.Read(opcion)
 		if string(opcion) == "1" {
-			password = generadorContrasena()
+			tam := 13
+			var tamaux string
+			fmt.Println("Seleccione 1 para una clave aleatoria\n Seleccione 2 para insertar la clave")
+			fmt.Scan(&tamaux)
+			password = generadorContrasena(tam)
 			break
 		} else if string(opcion) == "2" {
-			password = loginui.FormPasswordContinue()
+			var contrasena string
+			var contrasena2 string
+			for {
+				fmt.Println("Introduzca su contraseña, la contraseña debe contener al menos 1 mayuscula y 1 valor numerico: ")
+				fmt.Scan(&contrasena)
+				fmt.Println("Verificando contraseña, introduzca la contraseña de nuevo: ")
+				fmt.Scan(&contrasena2)
+				if loginui.CheckSegurityPassword(contrasena) {
+					if contrasena == contrasena2 {
+						password = contrasena
+						break
+					} else {
+						fmt.Println("Las contaseñas no coinciden")
+					}
+				} else {
+					fmt.Println("Error, la contraseña debe contener al menos 1 mayuscula y 1 valor numerico")
+				}
+
+			}
 			break
 		}
 		fmt.Print("La opcion no es correcta, introduzcala de nuevo")
