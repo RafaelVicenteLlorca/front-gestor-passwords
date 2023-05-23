@@ -7,6 +7,7 @@ import (
 	mainui "passwordsAdmin/ui/main"
 	"unicode"
 
+	"github.com/TwiN/go-color"
 	"golang.org/x/term"
 )
 
@@ -26,7 +27,7 @@ func SignInUI() ([]byte, []byte) {
 }
 
 func FormCheckPassword() string {
-	passwordInput, err := mainui.RequestPassword("Introduzca su contraseña, la contraseña debe contener al menos 1 mayúscula y 1 valor númerico: ")
+	passwordInput, err := mainui.RequestPassword("Introduzca su contraseña: ")
 	if err != nil {
 		return ""
 	}
@@ -57,12 +58,15 @@ func FormPasswordContinue() string {
 	for {
 		password := FormCheckPassword()
 		if password == "" {
-			fmt.Println("Las contraseñas no coinciden, intentelo de nuevo")
+			fmt.Println(color.Colorize(color.Red, "Las contraseñas no coinciden, inténtelo de nuevo"))
 			continue
 		}
-		if CheckSegurityPassword(password) {
-			fmt.Println("Error, la contraseña debe contener al menos 1 mayúscula y 1 valor númerico")
-
+		if !CheckSegurityPassword(password) {
+			fmt.Println(color.Colorize(color.Red, "Error, la contraseña debe:"))
+			fmt.Println(color.Colorize(color.Red, "1. Contener al menos 1 mayúscula"))
+			fmt.Println(color.Colorize(color.Red, "2. Valor númerico"))
+			fmt.Println(color.Colorize(color.Red, "3. Longitud mínima: "+fmt.Sprintf("%d", DEFAULT_MIN_LENGTH)))
+			continue
 		}
 		return password
 	}

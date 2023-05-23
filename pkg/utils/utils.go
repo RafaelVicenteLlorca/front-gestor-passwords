@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"io"
+	"math/big"
 
 	"golang.org/x/crypto/chacha20"
 	"golang.org/x/crypto/sha3"
@@ -80,4 +81,14 @@ func GeneradorHash(email string, pass string) ([]byte, []byte) {
 	hash2 := hash[len(hash)/2:]
 	emailhashed := hashemaillargo[:]
 	return hash2, emailhashed
+}
+
+func RandomPasswordGenerator(size int) string {
+	const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890?!@#$%^&*()_+[]{}"
+	result := make([]byte, size)
+	for i := range result {
+		randomIndex, _ := rand.Int(rand.Reader, big.NewInt(int64(len(chars))))
+		result[i] = chars[randomIndex.Int64()]
+	}
+	return string(result)
 }
