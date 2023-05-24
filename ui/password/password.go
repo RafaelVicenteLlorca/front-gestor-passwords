@@ -2,11 +2,11 @@ package password
 
 import (
 	"fmt"
-	"os"
 	"passwordsAdmin/pkg/user"
 	"passwordsAdmin/pkg/utils"
 	"passwordsAdmin/services"
 	"passwordsAdmin/session"
+	mainui "passwordsAdmin/ui/main"
 	"strings"
 
 	"github.com/TwiN/go-color"
@@ -38,27 +38,34 @@ func AddPasswordUI() user.User {
 	fmt.Println("Introduzca el sitio web: ")
 	fmt.Scan(&newPassword.WebSite)
 
-	var opcion []byte = make([]byte, 1)
+	var opcion string
 	for {
-		fmt.Println("Seleccione 1 para una clave aleatoria\n Seleccione 2 para insertar la clave")
-		os.Stdin.Read(opcion)
+		fmt.Println("Seleccione 1 para una clave aleatoria")
+		fmt.Println("Seleccione 2 para insertar la clave")
+		fmt.Scan(&opcion)
 		if string(opcion) == "1" {
 			var tamaux int
 			fmt.Printf("Introduzca longitud de la contraseña [%d]:", default_password_size)
-			fmt.Scan(&tamaux)
+			fmt.Scanln(&tamaux)
 			if tamaux == 0 {
 				tamaux = default_password_size
 			}
 			newPassword.Password = utils.RandomPasswordGenerator(tamaux)
 			break
 		} else if string(opcion) == "2" {
-			fmt.Println("Contraseña: ")
-			fmt.Scan(&newPassword.Password)
+			password, err := mainui.RequestPassword("Contraseña: ")
+			if err != nil {
+				fmt.Print(color.Colorize(color.Red, "ERROR con la contraseña, repite"))
+				continue
+			}
+			newPassword.Password = string(password)
+			break
 		}
-		fmt.Print("La opcion no es correcta, introduzcala de nuevo")
+		fmt.Println("La opcion no es correcta, introduzcala de nuevo")
 	}
 	fmt.Println("Desea añadir notas (s/N): ")
-	os.Stdin.Read(opcion)
+	fmt.Scanln(&opcion)
+
 	if strings.ToLower(string(opcion)) == "s" {
 		fmt.Println("Introduzca las notas : ")
 		fmt.Scan(&newPassword.Notes)
