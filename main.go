@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/signal"
 	"passwordsAdmin/client"
 	"passwordsAdmin/pkg/utils"
 	"passwordsAdmin/services"
@@ -47,7 +48,21 @@ func signIn() ([]byte, bool) {
 	return key, isSignedIn
 }
 
+func exit() {
+	fmt.Println("Saliendo...")
+	os.Exit(0)
+}
+
+func ctrlCInterrupt() {
+	// Wait for an in interrupt.
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	<-c
+	exit()
+}
+
 func main() {
+	go ctrlCInterrupt()
 	mainui.AppLogo()
 	for {
 		mainui.MainMenu()
@@ -72,10 +87,9 @@ func main() {
 			}
 			fmt.Println(color.Colorize(color.Green, "¡Usuario registrado!"))
 		case "q":
-			fmt.Println("Saliendo...")
-			os.Exit(0)
+			exit()
 		default:
-			fmt.Println(color.Colorize(color.Green, "Error al escoger opcion"))
+			fmt.Println(color.Colorize(color.Red, "Error al escoger opcion"))
 		}
 	}
 }
