@@ -1,6 +1,8 @@
 package password
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"passwordsAdmin/pkg/user"
 	"passwordsAdmin/pkg/utils"
@@ -76,14 +78,19 @@ func AddPasswordUI() user.User {
 	return newPassword
 }
 
-func showPasswords() error {
+func GetAllPasswords() error {
 	fmt.Println(color.Colorize(color.Blue, "Cargando contraseñas..."))
 	passwords, err := services.PasswordsServiceRequest.GetAll()
 	if err != nil {
 		return err
 	}
-	for i, password := range passwords {
-		fmt.Printf("%d: ", i)
+	session.SessionObject.SetPasswords(passwords)
+	return nil
+}
+
+func showPasswords() error {
+	for i, password := range session.SessionObject.GetPasswords() {
+		fmt.Printf("%d: ", i+1)
 		desencryptedPassword, err := utils.DecryptChaCha(password.Content, session.SessionObject.GetKey())
 		if err != nil {
 			fmt.Println(color.Colorize(color.Red, err.Error()))
@@ -94,12 +101,22 @@ func showPasswords() error {
 	return nil
 }
 
-func deletePasswordsUI(password user.User) error {
-	// TODO: add request to delete by id
-	return nil
+func deletePasswordsUI(password services.PasswordsResponse) bool {
+	var option string
+	fmt.Println("¿Estás seguro de eliminar la contraseña? (s/N)")
+	fmt.Scanln(&option)
+	if strings.ToLower(option) != "s" {
+		return false
+	}
+	err := services.PasswordsServiceRequest.Delete(password.ID)
+	if err != nil {
+		fmt.Println(color.Colorize(color.Red, "Error al borrar la contraseña"))
+		return false
+	}
+	return true
 }
 
-func modificarContrasena(posicion int) {
+func updatePassword(password user.User) (*user.User, error) {
 	// TODO: add update form and request to update by id
 	/* var opcion []byte = make([]byte, 1)
 	var nuevo string
@@ -141,9 +158,25 @@ func modificarContrasena(posicion int) {
 	default:
 		fmt.Println("el valor no es correcto")
 	} */
+	return &user.User{}, nil
+}
+
+func convertPasswordToData(p services.PasswordsResponse) (user.User, error) {
+	desencryptedPassword, err := utils.DecryptChaCha(p.Content, session.SessionObject.GetKey())
+	if err != nil {
+		return user.User{}, errors.New("error mientras se actualizaba")
+	}
+	var password user.User
+	err = json.Unmarshal([]byte(desencryptedPassword), &password)
+	if err != nil {
+		return user.User{}, errors.New("error mientras se actualizaba")
+
+	}
+	return password, nil
 }
 
 func InitMenu() {
+	GetAllPasswords()
 	for {
 		err := showPasswords()
 		if err != nil {
@@ -157,13 +190,94 @@ func InitMenu() {
 			break
 		}
 		if option == "1" {
-			err := AddPassword()
-			if err != nil {
-				fmt.Println(color.Colorize(color.Red, err.Error()))
-			}
+			optionAdd()
 			continue
 		}
+		if option == "2" {
+			optionGetAll()
+			continue
+		}
+
+		if option == "3" {
+			optionUpdate()
+			continue
+		}
+		if option == "4" {
+			optionDelete()
+			continue
+		}
+
 	}
+}
+
+func optionAdd() {
+	err := AddPassword()
+	if err != nil {
+		fmt.Println(color.Colorize(color.Red, err.Error()))
+	}
+}
+
+func optionGetAll() {
+	err := GetAllPasswords()
+	if err != nil {
+		fmt.Println(color.Colorize(color.Red, err.Error()))
+	}
+}
+
+func optionUpdate() {
+	var passwordSelected *services.PasswordsResponse
+	var option int
+	for {
+		option = requestByPassword()
+		password, err := session.SessionObject.GetPasswordByPosition(option - 1)
+		if err != nil {
+			fmt.Println(color.Colorize(color.Red, "Contraseña no encontrada"))
+			continue
+		}
+		passwordSelected = password
+		break
+	}
+	// transform password to user
+	password, err := convertPasswordToData(*passwordSelected)
+	if err != nil {
+		return
+	}
+	newPassword, err := updatePassword(password)
+	if err != nil {
+		return
+	}
+	fmt.Println(newPassword)
+	// ! call to api
+
+	// * result: if is true, updated in array, false, exit
+
+}
+
+func optionDelete() {
+	var passwordSelected *services.PasswordsResponse
+	var option int
+	for {
+		option = requestByPassword()
+		password, err := session.SessionObject.GetPasswordByPosition(option - 1)
+		if err != nil {
+			fmt.Println(color.Colorize(color.Red, "Contraseña no encontrada"))
+			continue
+		}
+		passwordSelected = password
+		break
+	}
+	result := deletePasswordsUI(*passwordSelected)
+	if result {
+		session.SessionObject.DeletePassword(option - 1)
+		fmt.Println(color.Colorize(color.Green, "¡Eliminada correctamente!"))
+	}
+}
+
+func requestByPassword() int {
+	var option int
+	fmt.Print("Introduce el número de la contraseña a seleccionar: ")
+	fmt.Scanf("%d", &option)
+	return option
 }
 
 func PasswordActions() string {
