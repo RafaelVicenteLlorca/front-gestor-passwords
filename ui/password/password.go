@@ -2,7 +2,6 @@ package password
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"passwordsAdmin/pkg/user"
 	"passwordsAdmin/pkg/utils"
@@ -18,13 +17,20 @@ const default_password_size = 13
 
 func AddPassword() error {
 	password := AddPasswordUI()
-	content := fmt.Sprintf("%+v", password)
-	encriptedContent, err := utils.EncryptChaCha(content, session.SessionObject.GetKey())
+	content, err := json.Marshal(password)
+	if err != nil {
+		return err
+	}
+	encriptedContent, err := utils.EncryptChaCha(string(content), session.SessionObject.GetKey())
 	if err != nil {
 		return err
 	}
 	body := services.PasswordsCreateRequest{Content: encriptedContent}
-	services.PasswordsServiceRequest.Create(body)
+	newPassword, err := services.PasswordsServiceRequest.Create(body)
+	if err != nil {
+		return err
+	}
+	session.SessionObject.SetPasswords(append(session.SessionObject.GetPasswords(), *newPassword))
 	return nil
 }
 
@@ -70,7 +76,7 @@ func AddPasswordUI() user.User {
 
 	if strings.ToLower(string(opcion)) == "s" {
 		fmt.Println("Introduzca las notas : ")
-		fmt.Scan(&newPassword.Notes)
+		fmt.Scanln(&newPassword.Notes)
 	} else {
 		newPassword.Notes = "No hay notas"
 	}
@@ -80,6 +86,7 @@ func AddPasswordUI() user.User {
 
 func GetAllPasswords() error {
 	fmt.Println(color.Colorize(color.Blue, "Cargando contraseñas..."))
+	fmt.Println()
 	passwords, err := services.PasswordsServiceRequest.GetAll()
 	if err != nil {
 		return err
@@ -95,7 +102,12 @@ func showPasswords() error {
 		if err != nil {
 			fmt.Println(color.Colorize(color.Red, err.Error()))
 		} else {
-			fmt.Println(desencryptedPassword)
+			var p user.User
+			err := json.Unmarshal([]byte(desencryptedPassword), &p)
+			if err != nil {
+				fmt.Println(color.Colorize(color.Red, "Contraseña mal serializada"))
+			}
+			fmt.Println(p.ToString())
 		}
 	}
 	return nil
@@ -117,62 +129,71 @@ func deletePasswordsUI(password services.PasswordsResponse) bool {
 }
 
 func updatePassword(password user.User) (*user.User, error) {
-	// TODO: add update form and request to update by id
-	/* var opcion []byte = make([]byte, 1)
-	var nuevo string
-	user1 := contrasenas[posicion]
-	fmt.Println("si desaea modificar el nombre de usuario pulse 1\n si desea modificar el email pulse 2\n si desea modificar la contraseña pulse 3\n si desea modificar el sitio web pulse 4\n si desea modificar o añadir notas pulse 5")
-	os.Stdin.Read(opcion)
-	switch string(opcion) {
-	case "1":
-		fmt.Println("Introduzca el nuevo nombre: ")
-		fmt.Scan(&nuevo)
-		user1.Username = nuevo
-		contrasenas[posicion] = user1
-	case "2":
-		fmt.Println("Introduzca el nuevo email: ")
-		fmt.Scan(&nuevo)
-		user1.Email = nuevo
-		contrasenas[posicion] = user1
-	case "3":
-		fmt.Println("Introduzca la nueva contraseña: ")
-		fmt.Scan(&nuevo)
-		user1.Password = nuevo
-		contrasenas[posicion] = user1
-	case "4":
-		fmt.Println("Introduzca el nuevo sitio web: ")
-		fmt.Scan(&nuevo)
-		user1.WebSite = nuevo
-		contrasenas[posicion] = user1
-	case "5":
-		fmt.Println("desea añadir otra nota o modificar la actual (Añadir 1, Modificar 2): ")
-		fmt.Scan(&opcion)
-		fmt.Println("Introduzca la nueva nota: ")
-		fmt.Scan(&nuevo)
-		if string(opcion) == "1" {
-			user1.Notes = nuevo
-		} else if string(opcion) == "2" {
-			user1.Notes += ", " + nuevo
+	var newPassword = user.User{}
+
+	fmt.Print("Introduzca el usuario: ")
+	fmt.Printf("[%s]", password.Username)
+	fmt.Scanln(&newPassword.Username)
+	fmt.Println()
+	if newPassword.Username == "" {
+		newPassword.Username = password.Username
+	}
+
+	fmt.Print("Introduzca el email: ")
+	fmt.Printf("[%s]", password.Email)
+	fmt.Scanln(&newPassword.Email)
+	fmt.Println()
+	if newPassword.Email == "" {
+		newPassword.Email = password.Email
+	}
+
+	fmt.Print("Introduzca el sitio web: ")
+	fmt.Printf("[%s]", password.WebSite)
+	fmt.Scanln(&newPassword.WebSite)
+	fmt.Println()
+	if newPassword.WebSite == "" {
+		newPassword.WebSite = password.WebSite
+	}
+
+	var opcion string
+	for {
+		fmt.Println("Seleccione 1 para una clave aleatoria")
+		fmt.Println("Seleccione 2 para insertar la clave")
+		fmt.Println("Otro para mantener la contraseña actual")
+		fmt.Scanln(&opcion)
+		if opcion == "1" {
+			var tamaux int
+			fmt.Printf("Introduzca longitud de la contraseña [%d]:", default_password_size)
+			fmt.Scanln(&tamaux)
+			if tamaux == 0 {
+				tamaux = default_password_size
+			}
+			newPassword.Password = utils.RandomPasswordGenerator(tamaux)
+			break
 		}
-		contrasenas[posicion] = user1
-	default:
-		fmt.Println("el valor no es correcto")
-	} */
-	return &user.User{}, nil
-}
-
-func convertPasswordToData(p services.PasswordsResponse) (user.User, error) {
-	desencryptedPassword, err := utils.DecryptChaCha(p.Content, session.SessionObject.GetKey())
-	if err != nil {
-		return user.User{}, errors.New("error mientras se actualizaba")
+		if opcion == "2" {
+			password, err := mainui.RequestPassword("Contraseña: ")
+			if err != nil {
+				fmt.Print(color.Colorize(color.Red, "ERROR con la contraseña, repite"))
+				continue
+			}
+			newPassword.Password = string(password)
+			break
+		}
+		newPassword.Password = password.Password
+		break
 	}
-	var password user.User
-	err = json.Unmarshal([]byte(desencryptedPassword), &password)
-	if err != nil {
-		return user.User{}, errors.New("error mientras se actualizaba")
+	fmt.Println("Desea añadir notas (s/N): ")
+	fmt.Scanln(&opcion)
 
+	if strings.ToLower(string(opcion)) == "s" {
+		fmt.Println("Introduzca las notas: ")
+		fmt.Scanln(&newPassword.Notes)
+	} else {
+		newPassword.Notes = password.Notes
 	}
-	return password, nil
+
+	return &newPassword, nil
 }
 
 func InitMenu() {
@@ -237,20 +258,37 @@ func optionUpdate() {
 		passwordSelected = password
 		break
 	}
-	// transform password to user
-	password, err := convertPasswordToData(*passwordSelected)
+	password, err := user.ConvertPasswordToData(*passwordSelected, session.SessionObject.GetKey())
 	if err != nil {
+		fmt.Println(err.Error())
 		return
 	}
 	newPassword, err := updatePassword(password)
 	if err != nil {
+		fmt.Println(err.Error())
 		return
 	}
-	fmt.Println(newPassword)
-	// ! call to api
+	content, err := json.Marshal(newPassword)
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+	encriptedContent, err := utils.EncryptChaCha(string(content), session.SessionObject.GetKey())
+	if err != nil {
+		fmt.Println(err.Error())
+		fmt.Println(color.Colorize(color.Red, "Error al actualizar la contraseña"))
+		return
+	}
+	body := services.PasswordsUpdateRequest{Content: encriptedContent}
+	err = services.PasswordsServiceRequest.Update(passwordSelected.ID, body)
+	if err != nil {
+		fmt.Println(err.Error())
+		fmt.Println(color.Colorize(color.Red, "Error al actualizar la contraseña"))
+		return
+	}
 
-	// * result: if is true, updated in array, false, exit
-
+	var passwords = session.SessionObject.GetPasswords()
+	passwords[option-1] = services.PasswordsResponse{ID: passwordSelected.ID, Content: encriptedContent}
 }
 
 func optionDelete() {
