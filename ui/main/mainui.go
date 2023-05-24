@@ -7,16 +7,34 @@ import (
 )
 
 func AppLogo() {
-	fmt.Println("---------------------------------------------------------------------------------------------------------------------------------------------------------------")
-	fmt.Println("---------------------------------------------------------------BIENVENIDO AL GESTOR DE CONTRASEÑAS-------------------------------------------------------------")
-	fmt.Println("---------------------------------------------------------------------------------------------------------------------------------------------------------------")
+	fmt.Println()
+	fmt.Println("        #####              ########      ")
+	fmt.Println("     ###########         #####  #####    ")
+	fmt.Println("  ###############      ###         ####  ")
+	fmt.Println(" ####         ###     ####          #### ")
+	fmt.Println(" ###           ##     ####           ### ")
+	fmt.Println("###             #     ####           ##  ")
+	fmt.Println("###                   ####           #   ")
+	fmt.Println("###                   ####          #    ")
+	fmt.Println("###                   ####        ##     ")
+	fmt.Println("###          ####     ####      ###      ")
+	fmt.Println("###           ###     ####  ####         ")
+	fmt.Println("###             #     #######            ")
+	fmt.Println("###             #     ####               ")
+	fmt.Println("####          ###     ####               ")
+	fmt.Println(" ####       ####      ####               ")
+	fmt.Println(" ##############       ####               ")
+	fmt.Println("  ############        ####               ")
+	fmt.Println()
+	fmt.Println("GRAND PASSWORD")
 }
 
 func MainMenu() {
-	fmt.Print("\n\n")
-	fmt.Println("								Pulse 1 para logearse										")
-	fmt.Println("								Pulse 2 para Crear un usuario								")
-	fmt.Println("(Pulse q para cerrar)")
+	fmt.Println()
+	fmt.Println("--------------------------------")
+	fmt.Println("1 Login")
+	fmt.Println("2 Crear usuario")
+	fmt.Println("(q para cerrar)")
 }
 
 func RequestPassword(text string) ([]byte, error) {
