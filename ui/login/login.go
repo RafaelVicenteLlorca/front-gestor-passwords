@@ -2,6 +2,7 @@ package login
 
 import (
 	"fmt"
+	"os"
 	"passwordsAdmin/pkg/utils"
 	"passwordsAdmin/session"
 	mainui "passwordsAdmin/ui/main"
@@ -16,9 +17,9 @@ const DEFAULT_MIN_LENGTH = 10
 func SignInUI() ([]byte, []byte) {
 	var email string
 	fmt.Println("Introduzca su email: ")
-	fmt.Scan(&email)
+	fmt.Scanln(&email)
 	fmt.Println("Introduzca su contraseña: ")
-	password, err := term.ReadPassword(0)
+	password, err := term.ReadPassword(int(os.Stdin.Fd()))
 	if err != nil {
 		fmt.Println("Error reading password")
 		return nil, nil
@@ -76,7 +77,7 @@ func SingUpData() (string, string) {
 	var email string
 
 	fmt.Println("Introduzca su email: ")
-	fmt.Scan(&email)
+	fmt.Scanln(&email)
 	password := FormPasswordContinue()
 
 	login, hashemail := utils.GeneradorHash(email, string(password))

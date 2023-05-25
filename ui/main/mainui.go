@@ -2,6 +2,7 @@ package mainui
 
 import (
 	"fmt"
+	"os"
 
 	"golang.org/x/term"
 )
@@ -39,7 +40,7 @@ func MainMenu() {
 
 func RequestPassword(text string) ([]byte, error) {
 	fmt.Print(text)
-	password, err := term.ReadPassword(0)
+	password, err := term.ReadPassword(int(os.Stdin.Fd()))
 	fmt.Println()
 	return password, err
 }
