@@ -66,9 +66,9 @@ func main() {
 	mainui.AppLogo()
 	for {
 		mainui.MainMenu()
-		var option rune
-		fmt.Scanf("%c", &option)
-		switch string(option) {
+		var option string
+		fmt.Scanln(&option)
+		switch option {
 		case "1":
 			key, isSignedIn := signIn()
 			if !isSignedIn {

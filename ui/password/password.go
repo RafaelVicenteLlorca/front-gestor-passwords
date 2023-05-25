@@ -8,6 +8,7 @@ import (
 	"passwordsAdmin/services"
 	"passwordsAdmin/session"
 	mainui "passwordsAdmin/ui/main"
+	"strconv"
 	"strings"
 
 	"github.com/TwiN/go-color"
@@ -38,19 +39,19 @@ func AddPasswordUI() user.User {
 	var newPassword = user.User{}
 
 	fmt.Println("Introduzca el usuario: ")
-	fmt.Scan(&newPassword.Username)
+	fmt.Scanln(&newPassword.Username)
 
 	fmt.Println("Introduzca el email: ")
-	fmt.Scan(&newPassword.Email)
+	fmt.Scanln(&newPassword.Email)
 
 	fmt.Println("Introduzca el sitio web: ")
-	fmt.Scan(&newPassword.WebSite)
+	fmt.Scanln(&newPassword.WebSite)
 
 	var opcion string
 	for {
 		fmt.Println("Seleccione 1 para una clave aleatoria")
 		fmt.Println("Seleccione 2 para insertar la clave")
-		fmt.Scan(&opcion)
+		fmt.Scanln(&opcion)
 		if string(opcion) == "1" {
 			var tamaux int
 			fmt.Printf("Introduzca longitud de la contraseña [%d]:", default_password_size)
@@ -312,10 +313,17 @@ func optionDelete() {
 }
 
 func requestByPassword() int {
-	var option int
-	fmt.Print("Introduce el número de la contraseña a seleccionar: ")
-	fmt.Scanf("%d", &option)
-	return option
+	for {
+		var option string
+		fmt.Print("Introduce el número de la contraseña a seleccionar: ")
+		fmt.Scanln(&option)
+		result, err := strconv.Atoi(option)
+		if err != nil {
+			fmt.Println(color.Colorize(color.Red, "Introduce un número válido"))
+			continue
+		}
+		return result
+	}
 }
 
 func PasswordActions() string {
@@ -328,6 +336,6 @@ func PasswordActions() string {
 	fmt.Println("3 Editar contraseña")
 	fmt.Println("4 Borrar contraseña")
 	fmt.Println("(c para cerrar sesión)")
-	fmt.Scan(&option)
+	fmt.Scanln(&option)
 	return option
 }
